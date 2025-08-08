@@ -47,7 +47,10 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://your-frontend-domain.com"]
+        ? [
+            "https://travel-trackbackend.vercel.app",
+            "https://your-frontend-domain.com",
+          ]
         : ["http://localhost:3000", "http://localhost:3001"],
     credentials: true,
   })
@@ -120,16 +123,21 @@ const connectDB = async () => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-const startServer = async () => {
-  await connectDB();
-  app.listen(PORT, () => {
-    console.log(`🚀 TRAVELTRACK Server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-  });
-};
 
-startServer();
+// Connect to database
+connectDB();
+
+// For Vercel serverless deployment
+if (process.env.NODE_ENV !== "production") {
+  const startServer = async () => {
+    app.listen(PORT, () => {
+      console.log(`🚀 TRAVELTRACK Server running on port ${PORT}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+    });
+  };
+  startServer();
+}
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (err, promise) => {
