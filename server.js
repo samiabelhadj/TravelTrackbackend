@@ -90,6 +90,28 @@ app.get("/", (req, res) => {
   });
 });
 
+// Database health check endpoint
+app.get("/api/db-health", async (req, res) => {
+  try {
+    const { connectDB } = require('./utils/db');
+    await connectDB();
+    res.status(200).json({
+      success: true,
+      message: "Database connection successful",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+    });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", protect, userRoutes);

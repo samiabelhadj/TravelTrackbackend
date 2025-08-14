@@ -15,7 +15,7 @@ const connectDB = async () => {
       cachedConnection = null;
     }
 
-    // Create new connection
+    // Create new connection with better timeout settings for serverless
     const conn = await mongoose.connect(
       process.env.NODE_ENV === "production"
         ? process.env.MONGODB_URI_PROD
@@ -23,11 +23,14 @@ const connectDB = async () => {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 45000,
+        serverSelectionTimeoutMS: 10000, // 10 second timeout
+        socketTimeoutMS: 45000, // 45 second timeout
         maxPoolSize: 1, // Important for serverless
+        minPoolSize: 0, // Allow 0 connections when idle
         bufferCommands: false, // Disable mongoose buffering
         bufferMaxEntries: 0, // Disable mongoose buffering
+        connectTimeoutMS: 10000, // 10 second connection timeout
+        heartbeatFrequencyMS: 10000, // Heartbeat every 10 seconds
       }
     );
 

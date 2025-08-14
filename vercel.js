@@ -18,7 +18,18 @@ const initDB = async () => {
 };
 
 // Initialize database when the function is first invoked
-initDB();
+initDB().catch(console.error);
+
+// Add error handling for unhandled rejections in serverless
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit in serverless environment
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit in serverless environment
+});
 
 // Vercel serverless function handler
 module.exports = app;

@@ -2,6 +2,7 @@ const express = require("express");
 const { body } = require("express-validator");
 const { protect } = require("../middleware/auth");
 const authController = require("../controllers/authController");
+const { withDB } = require("../utils/db");
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ router.post(
         "Password must contain at least one uppercase letter, one lowercase letter, and one number"
       ),
   ],
-  authController.register
+  withDB(authController.register)
 );
 
 router.post(
@@ -44,7 +45,7 @@ router.post(
       .isNumeric()
       .withMessage("Verification code must contain only numbers"),
   ],
-  authController.verifyEmail
+  withDB(authController.verifyEmail)
 );
 
 router.post(
@@ -55,7 +56,7 @@ router.post(
       .normalizeEmail()
       .withMessage("Please provide a valid email"),
   ],
-  authController.resendVerification
+  withDB(authController.resendVerification)
 );
 
 router.post(
@@ -67,12 +68,12 @@ router.post(
       .withMessage("Please provide a valid email"),
     body("password").notEmpty().withMessage("Password is required"),
   ],
-  authController.login
+  withDB(authController.login)
 );
 
-router.post("/logout", protect, authController.logout);
+router.post("/logout", protect, withDB(authController.logout));
 
-router.get("/me", protect, authController.getMe);
+router.get("/me", protect, withDB(authController.getMe));
 
 router.post(
   "/forgotpassword",
@@ -82,7 +83,7 @@ router.post(
       .normalizeEmail()
       .withMessage("Please provide a valid email"),
   ],
-  authController.forgotPassword
+  withDB(authController.forgotPassword)
 );
 
 router.put(
