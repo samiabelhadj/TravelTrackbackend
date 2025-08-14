@@ -65,14 +65,26 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-// Static files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Static files (only in development)
+if (process.env.NODE_ENV !== "production") {
+  app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+}
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "TRAVELTRACK API is running",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+  });
+});
+
+// Simple health check for Vercel (no DB required)
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "TRAVELTRACK API is running on Vercel",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
   });
@@ -102,9 +114,14 @@ app.use("*", (req, res) => {
   });
 });
 
-// Database connection
+// Database connection function (for serverless compatibility)
 const connectDB = async () => {
   try {
+    // Check if already connected
+    if (mongoose.connection.readyState === 1) {
+      return mongoose.connection;
+    }
+
     const conn = await mongoose.connect(
       process.env.NODE_ENV === "production"
         ? process.env.MONGODB_URI_PROD
@@ -112,38 +129,45 @@ const connectDB = async () => {
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        socketTimeoutMS: 45000, // 45 second timeout
       }
     );
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    return conn;
   } catch (error) {
     console.error("Database connection error:", error);
-    process.exit(1);
+    // Don't exit in serverless environment
+    throw error;
   }
 };
 
-// Start server
-const PORT = process.env.PORT || 3000;
-
-// Connect to database
-connectDB();
-
-// For Vercel serverless deployment
+// Start server (only in development)
 if (process.env.NODE_ENV !== "production") {
   const startServer = async () => {
-    app.listen(PORT, () => {
-      console.log(`🚀 TRAVELTRACK Server running on port ${PORT}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
-    });
+    try {
+      await connectDB();
+      const PORT = process.env.PORT || 3000;
+      app.listen(PORT, () => {
+        console.log(`🚀 TRAVELTRACK Server running on port ${PORT}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+        console.log(`🔗 Health check: http://localhost:${PORT}/api/health`);
+      });
+    } catch (error) {
+      console.error("Failed to start server:", error);
+      process.exit(1);
+    }
   };
   startServer();
 }
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  process.exit(1);
-});
+// Handle unhandled promise rejections (only in development)
+if (process.env.NODE_ENV !== "production") {
+  process.on("unhandledRejection", (err, promise) => {
+    console.log(`Error: ${err.message}`);
+    // Close server & exit process only in development
+    process.exit(1);
+  });
+}
 
 module.exports = app;
