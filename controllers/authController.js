@@ -333,7 +333,7 @@ exports.verifyResetCode = async (req, res, next) => {
     user.resetPasswordToken = resetToken;
     user.resetPasswordTokenExpire = resetTokenExpire;
     await user.save();
-    
+
     res.status(200).json({
       success: true,
       message: "Reset code verified successfully",
@@ -389,7 +389,6 @@ exports.resetPassword = async (req, res, next) => {
     next(error);
   }
 };
-
 
 // Update user details
 exports.updateDetails = async (req, res, next) => {
