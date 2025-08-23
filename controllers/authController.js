@@ -337,6 +337,7 @@ exports.verifyResetCode = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Reset code verified successfully",
+      resetToken: resetToken,
     });
   } catch (error) {
     next(error);
