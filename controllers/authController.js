@@ -296,24 +296,23 @@ exports.forgotPassword = async (req, res, next) => {
     next(error);
   }
 };
-
-// Reset password
-exports.resetPassword = async (req, res, next) => {
+exports.verifyResetCode = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { email, code, password } = req.body;
+    const { email, code } = req.body;
 
-    if (!email || !code || !password) {
+    if (!email || !code) {
       return res.status(400).json({
         success: false,
-        message: "Email, reset code, and new password are required",
+        message: "Email and reset code are required",
       });
     }
 
+    // Find user with valid reset code
     const user = await User.findOne({
       email,
       resetPasswordCode: code,
@@ -321,14 +320,59 @@ exports.resetPassword = async (req, res, next) => {
     });
 
     if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid or expired reset code" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset code",
+      });
+    }
+    // Generate a temporary reset token (valid for password reset)
+    const crypto = require("crypto");
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpire = Date.now() + 10 * 60 * 1000; // 10 minutes to set password
+    res.status(200).json({
+      success: true,
+      message: "Reset code verified successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
+    const { password, resetToken } = req.body;
+
+    if (!password || !resetToken) {
+      return res.status(400).json({
+        success: false,
+        message: "New password and reset token are required",
+      });
+    }
+
+    // Find user with valid reset token
+    const user = await User.findOne({
+      resetPasswordToken: resetToken,
+      resetPasswordTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid or expired reset session. Please start the reset process again.",
+      });
+    }
+
+    // Update password and clear all reset fields
     user.password = password;
     user.resetPasswordCode = undefined;
     user.resetPasswordExpire = undefined;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordTokenExpire = undefined;
     await user.save();
 
     res.status(200).json({
@@ -340,6 +384,7 @@ exports.resetPassword = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // Update user details
 exports.updateDetails = async (req, res, next) => {

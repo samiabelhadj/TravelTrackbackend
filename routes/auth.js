@@ -84,9 +84,25 @@ router.post(
   ],
   authController.forgotPassword
 );
+router.post(
+  "/verify-reset-code",
+  [
+    body("email")
+      .isEmail()
+      .normalizeEmail()
+      .withMessage("Please provide a valid email"),
+    body("code")
+      .isLength({ min: 6, max: 6 })
+      .withMessage("Reset code must be 6 digits")
+      .isNumeric()
+      .withMessage("Reset code must contain only numbers"),
+  ],
+  authController.verifyResetCode
+);
+router.put("/resetpassword",authController.resetPassword);
 
-router.put(
-  "/resetpassword",
+//router.put(
+"/resetpassword",
   [
     body("email")
       .isEmail()
@@ -105,8 +121,8 @@ router.put(
         "Password must contain at least one uppercase letter, one lowercase letter, and one number"
       ),
   ],
-  authController.resetPassword
-);
+  authController.resetPassword;
+//);
 
 router.put(
   "/updatedetails",
