@@ -329,6 +329,11 @@ exports.verifyResetCode = async (req, res, next) => {
     const crypto = require("crypto");
     const resetToken = crypto.randomBytes(32).toString("hex");
     const resetTokenExpire = Date.now() + 10 * 60 * 1000; // 10 minutes to set password
+    // Save reset token to user
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordTokenExpire = resetTokenExpire;
+    await user.save();
+    
     res.status(200).json({
       success: true,
       message: "Reset code verified successfully",
